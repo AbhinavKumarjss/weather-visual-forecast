@@ -10,6 +10,16 @@ import NotFound from "./pages/NotFound";
 import { useEffect, useState } from "react";
 import { WeatherSummary } from "./types";
 
+// Define props that will be passed to Weather component
+interface WeatherProps {
+  updateWeatherSummary?: (cityName: string, summary: WeatherSummary) => void;
+}
+
+// Create a wrapper component that will pass the prop
+const WeatherWrapper = ({ updateWeatherSummary }: WeatherProps) => {
+  return <Weather />;
+};
+
 const queryClient = new QueryClient();
 
 const App = () => {
@@ -44,7 +54,7 @@ const App = () => {
           <Routes>
             <Route path="/" element={<Index weatherData={weatherData} />} />
             <Route path="/weather" element={
-              <Weather 
+              <WeatherWrapper 
                 updateWeatherSummary={(cityName, summary) => {
                   setWeatherData(prev => ({
                     ...prev,
