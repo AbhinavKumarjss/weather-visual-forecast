@@ -1,30 +1,43 @@
 
 import React, { useEffect, useState } from 'react';
-import { useSearchParams, Link } from 'react-router-dom';
+import { useSearchParams, Link, useNavigate } from 'react-router-dom';
 import { fetchWeather, fetchForecast } from '@/utils/api';
 import { WeatherData, ForecastData } from '@/types';
 import WeatherDisplay from '@/components/WeatherDisplay';
 import WeatherBackground from '@/components/WeatherBackground';
 import { Button } from '@/components/ui/button';
-import { ArrowLeft } from 'lucide-react';
-import { toast } from 'sonner';
+import { ArrowLeft, AlertCircle } from 'lucide-react';
+import { toast } from '@/components/ui/use-toast';
+import { Alert, AlertTitle, AlertDescription } from '@/components/ui/alert';
 
 const Weather = () => {
   const [searchParams] = useSearchParams();
+  const navigate = useNavigate();
   const [currentWeather, setCurrentWeather] = useState<WeatherData | null>(null);
   const [forecast, setForecast] = useState<ForecastData | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   
-  const lat = parseFloat(searchParams.get('lat') || '0');
-  const lon = parseFloat(searchParams.get('lon') || '0');
+  // Parse the coordinates and validate them
+  const lat = parseFloat(searchParams.get('lat') || '');
+  const lon = parseFloat(searchParams.get('lon') || '');
   const cityName = searchParams.get('name') || 'Unknown City';
+
+  // Validate coordinates
+  const isValidCoordinates = !isNaN(lat) && !isNaN(lon) && 
+                              lat >= -90 && lat <= 90 && 
+                              lon >= -180 && lon <= 180;
 
   useEffect(() => {
     const loadWeatherData = async () => {
-      if (!lat || !lon) {
+      if (!isValidCoordinates) {
         setError('Invalid location coordinates');
         setIsLoading(false);
+        toast({
+          title: "Error",
+          description: "Invalid location coordinates",
+          variant: "destructive",
+        });
         return;
       }
       
@@ -59,14 +72,18 @@ const Weather = () => {
       } catch (err) {
         console.error('Error loading weather data:', err);
         setError('Failed to load weather data. Please try again.');
-        toast.error('Failed to load weather data');
+        toast({
+          title: "Error",
+          description: "Failed to load weather data",
+          variant: "destructive",
+        });
       } finally {
         setIsLoading(false);
       }
     };
     
     loadWeatherData();
-  }, [lat, lon, cityName]);
+  }, [lat, lon, cityName, isValidCoordinates]);
   
   let weatherCondition = 'default';
   if (currentWeather && currentWeather.weather && currentWeather.weather.length > 0) {
@@ -86,7 +103,24 @@ const Weather = () => {
           <h1 className="ml-4 text-2xl md:text-3xl font-bold">{cityName}</h1>
         </div>
 
-        {error ? (
+        {!isValidCoordinates && (
+          <Alert variant="destructive" className="mb-6 bg-white/80 backdrop-blur-sm">
+            <AlertCircle className="h-4 w-4" />
+            <AlertTitle>Error</AlertTitle>
+            <AlertDescription>
+              The provided location coordinates are invalid. Please return to the city selection page.
+            </AlertDescription>
+            <Button 
+              className="mt-4" 
+              variant="secondary"
+              onClick={() => navigate('/')}
+            >
+              Go to Cities
+            </Button>
+          </Alert>
+        )}
+
+        {error && isValidCoordinates && (
           <div className="p-8 bg-white/80 rounded-lg shadow-lg backdrop-blur-sm">
             <h2 className="text-xl font-semibold text-red-600 mb-2">Error</h2>
             <p>{error}</p>
@@ -94,14 +128,14 @@ const Weather = () => {
               Try Again
             </Button>
           </div>
-        ) : (
-          currentWeather && (
-            <WeatherDisplay 
-              currentWeather={currentWeather} 
-              forecast={forecast || undefined}
-              isLoading={isLoading} 
-            />
-          )
+        )}
+        
+        {isValidCoordinates && !error && currentWeather && (
+          <WeatherDisplay 
+            currentWeather={currentWeather} 
+            forecast={forecast || undefined}
+            isLoading={isLoading} 
+          />
         )}
       </div>
     </WeatherBackground>

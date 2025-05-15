@@ -4,7 +4,7 @@ import { fetchCities, convertCityRecords } from '@/utils/api';
 import { City, SortDirection, SortState, WeatherSummary } from '@/types';
 import { Button } from '@/components/ui/button';
 import SearchBar from './SearchBar';
-import { toast } from 'sonner';
+import { toast } from '@/components/ui/use-toast';
 import {
   ArrowDown,
   ArrowUp,
@@ -49,7 +49,11 @@ const CitiesTable: React.FC<CitiesTableProps> = ({ weatherData }) => {
       }
     } catch (error) {
       console.error("Error loading cities:", error);
-      toast.error("Failed to load cities. Please try again.");
+      toast({
+        title: "Error",
+        description: "Failed to load cities. Please try again.",
+        variant: "destructive",
+      });
     } finally {
       setIsLoading(false);
     }

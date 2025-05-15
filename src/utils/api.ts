@@ -1,6 +1,5 @@
-
 import { CityResponse, WeatherData, ForecastData } from '../types';
-import { toast } from 'sonner';
+import { toast } from '@/components/ui/use-toast';
 
 const CITIES_API_BASE_URL = 'https://public.opendatasoft.com/api/records/1.0/search/';
 const WEATHER_API_BASE_URL = 'https://api.openweathermap.org/data/2.5';
@@ -31,7 +30,11 @@ export const fetchCities = async (
     return data;
   } catch (error) {
     console.error('Error fetching cities:', error);
-    toast.error('Failed to load cities. Please try again.');
+    toast({
+      title: "Error",
+      description: "Failed to load cities. Please try again.",
+      variant: "destructive",
+    });
     return { records: [], total_count: 0 };
   }
 };
@@ -49,7 +52,11 @@ export const fetchWeather = async (lat: number, lon: number): Promise<WeatherDat
     return data;
   } catch (error) {
     console.error('Error fetching weather:', error);
-    toast.error('Failed to load current weather data. Please try again.');
+    toast({
+      title: "Error",
+      description: "Failed to load current weather data. Please try again.",
+      variant: "destructive",
+    });
     throw error;
   }
 };
@@ -67,7 +74,11 @@ export const fetchForecast = async (lat: number, lon: number): Promise<ForecastD
     return data;
   } catch (error) {
     console.error('Error fetching forecast:', error);
-    toast.error('Failed to load forecast data. Please try again.');
+    toast({
+      title: "Error",
+      description: "Failed to load forecast data. Please try again.",
+      variant: "destructive",
+    });
     throw error;
   }
 };
