@@ -14,19 +14,30 @@ export const fetchCities = async (
   sortDirection: 'asc' | 'desc' = 'asc'
 ): Promise<CityResponse> => {
   try {
+    // Handle search query
     const searchParam = search ? `&q=${encodeURIComponent(search)}` : '';
-    // Fix: Changed the sort format to not include space between sort and direction
-    const sortParam = `&sort=${sort}`;
     
+    // Format sort parameter - the API uses minus sign prefix for descending order
+    const sortParam = `&sort=${sortDirection === 'desc' ? '-' : ''}${sort}`;
+    
+    // Build the URL with all parameters
     const url = `${CITIES_API_BASE_URL}?dataset=geonames-all-cities-with-a-population-1000&rows=${limit}&start=${start}${searchParam}${sortParam}`;
     
+    console.log(`Fetching cities from: ${url}`);
+    
+    // Make the request
     const response = await fetch(url);
     
     if (!response.ok) {
       throw new Error(`Failed to fetch cities: ${response.status}`);
     }
     
+    // Parse the response
     const data = await response.json();
+    
+    // Log successful response
+    console.log(`Received ${data.records?.length || 0} cities (of ${data.total_count || 0} total)`);
+    
     return data;
   } catch (error) {
     console.error('Error fetching cities:', error);

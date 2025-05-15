@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { Link } from 'react-router-dom';
 import { fetchCities, convertCityRecords } from '@/utils/api';
@@ -24,17 +23,20 @@ const CitiesTable: React.FC<CitiesTableProps> = ({ weatherData }) => {
   const [hasMore, setHasMore] = useState(true);
   const [page, setPage] = useState(0);
   const [sort, setSort] = useState<SortState>({ column: 'name', direction: 'asc' });
-  const observer = useRef<IntersectionObserver | null>(null);
-  const lastCityRef = useRef<HTMLTableRowElement | null>(null);
+  const observerRef = useRef<IntersectionObserver | null>(null);
+  const lastRowRef = useRef<HTMLTableRowElement | null>(null);
   
   const loadCities = useCallback(async (reset = false) => {
+    // Don't load if already loading
+    if (isLoading) return;
+    
     try {
       setIsLoading(true);
-      const newPage = reset ? 0 : page;
+      const startIndex = reset ? 0 : page * 20;
       
       const data = await fetchCities(
         searchQuery, 
-        newPage * 20, 
+        startIndex, 
         20, 
         sort.column, 
         sort.direction
@@ -44,17 +46,14 @@ const CitiesTable: React.FC<CitiesTableProps> = ({ weatherData }) => {
       
       if (reset) {
         setCities(formattedCities);
+        setPage(1);
       } else {
         setCities(prev => [...prev, ...formattedCities]);
-      }
-      
-      setHasMore(formattedCities.length > 0 && formattedCities.length === 20);
-      
-      if (!reset) {
         setPage(prev => prev + 1);
-      } else {
-        setPage(1); // Start at page 1 after reset since we've loaded the first page
       }
+      
+      setHasMore(formattedCities.length === 20);
+      
     } catch (error) {
       console.error("Error loading cities:", error);
       toast({
@@ -69,9 +68,6 @@ const CitiesTable: React.FC<CitiesTableProps> = ({ weatherData }) => {
 
   const handleSearch = useCallback((query: string) => {
     setSearchQuery(query);
-    setCities([]);
-    setPage(0);
-    setHasMore(true);
   }, []);
 
   const handleSort = useCallback((column: string) => {
@@ -79,35 +75,51 @@ const CitiesTable: React.FC<CitiesTableProps> = ({ weatherData }) => {
       column,
       direction: prev.column === column && prev.direction === 'asc' ? 'desc' : 'asc'
     }));
-    setCities([]);
-    setPage(0);
   }, []);
 
+  // Initial load and reload on search/sort changes
   useEffect(() => {
+    setCities([]);
+    setPage(0);
+    setHasMore(true);
     loadCities(true);
-  }, [loadCities, searchQuery, sort]);
+  }, [searchQuery, sort]);
 
   // Setup intersection observer for infinite scrolling
   useEffect(() => {
+    // Don't setup observer if loading or no more data
     if (isLoading || !hasMore) return;
 
-    if (observer.current) observer.current.disconnect();
-    
-    observer.current = new IntersectionObserver(entries => {
-      if (entries[0].isIntersecting && hasMore) {
-        loadCities();
+    // Observer callback function
+    const handleObserver = (entries: IntersectionObserverEntry[]) => {
+      const [entry] = entries;
+      if (entry.isIntersecting) {
+        loadCities(false);
       }
-    }, {
-      rootMargin: '100px', // Load more data before user reaches the bottom
+    };
+    
+    // Create new observer
+    const observer = new IntersectionObserver(handleObserver, { 
+      rootMargin: '100px',
+      threshold: 0.1 
     });
     
-    if (lastCityRef.current) {
-      observer.current.observe(lastCityRef.current);
+    // Store current last row reference
+    const currentLastRowRef = lastRowRef.current;
+    
+    // Observe last row element if it exists
+    if (currentLastRowRef) {
+      observer.observe(currentLastRowRef);
     }
     
+    // Store the observer reference
+    observerRef.current = observer;
+    
+    // Cleanup function
     return () => {
-      if (observer.current) {
-        observer.current.disconnect();
+      if (currentLastRowRef && observer) {
+        observer.unobserve(currentLastRowRef);
+        observer.disconnect();
       }
     };
   }, [isLoading, hasMore, loadCities]);
@@ -135,9 +147,9 @@ const CitiesTable: React.FC<CitiesTableProps> = ({ weatherData }) => {
         <SearchBar onSearch={handleSearch} className="mb-4" />
       </div>
 
-      <div className="overflow-x-auto">
-        <table className="w-full">
-          <thead>
+      <div className="overflow-x-auto max-h-[70vh] overflow-y-auto">
+        <table className="w-full border-collapse">
+          <thead className="sticky top-0 z-10 bg-background shadow-sm">
             <tr className="bg-muted/50">
               <th 
                 className="p-3 text-left font-medium cursor-pointer"
@@ -182,14 +194,14 @@ const CitiesTable: React.FC<CitiesTableProps> = ({ weatherData }) => {
           </thead>
           <tbody>
             {cities.map((city, index) => {
-              const isLastItem = index === cities.length - 1;
               const cityWeather = weatherData[city.name];
+              const isLastRow = index === cities.length - 1;
               
               return (
                 <tr 
                   key={city.id} 
+                  ref={isLastRow ? lastRowRef : undefined}
                   className="border-b hover:bg-muted/20 transition-colors"
-                  ref={isLastItem ? lastCityRef : undefined}
                 >
                   <td className="p-3">
                     <Link 
@@ -222,35 +234,40 @@ const CitiesTable: React.FC<CitiesTableProps> = ({ weatherData }) => {
         </table>
       </div>
       
-      {isLoading && (
-        <div className="p-4 text-center">
-          <div className="animate-pulse flex justify-center">
-            Loading more cities...
+      {/* Loading indicator at the bottom */}
+      <div className="p-4 h-[60px] flex items-center justify-center border-t">
+        {isLoading && (
+          <div className="flex items-center space-x-2">
+            <svg className="animate-spin h-4 w-4 text-primary" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+              <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+              <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+            </svg>
+            <span>Loading cities...</span>
           </div>
-        </div>
-      )}
-      
-      {!isLoading && !hasMore && cities.length > 0 && (
-        <div className="p-4 text-center text-muted-foreground">
-          No more cities to load
-        </div>
-      )}
-      
-      {!isLoading && cities.length === 0 && (
-        <div className="p-4 text-center">
-          <p className="text-muted-foreground">No cities found</p>
-          <Button 
-            onClick={() => {
-              setSearchQuery('');
-              loadCities(true);
-            }} 
-            variant="outline" 
-            className="mt-2"
-          >
-            Clear search
-          </Button>
-        </div>
-      )}
+        )}
+        
+        {!isLoading && !hasMore && cities.length > 0 && (
+          <div className="text-center text-muted-foreground">
+            End of results
+          </div>
+        )}
+        
+        {!isLoading && cities.length === 0 && (
+          <div className="text-center">
+            <p className="text-muted-foreground">No cities found</p>
+            <Button 
+              onClick={() => {
+                setSearchQuery('');
+                loadCities(true);
+              }} 
+              variant="outline" 
+              className="mt-2"
+            >
+              Clear search
+            </Button>
+          </div>
+        )}
+      </div>
     </Card>
   );
 };
