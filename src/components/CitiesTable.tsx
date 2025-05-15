@@ -70,6 +70,13 @@ const CitiesTable: React.FC<CitiesTableProps> = ({ weatherData }) => {
     setSearchQuery(query);
   }, []);
 
+  const handleSelectCity = useCallback((city: City) => {
+    // If a city is selected directly from suggestions, we want to 
+    // immediately set it without waiting for the search to complete
+    setCities([city]);
+    setHasMore(false);
+  }, []);
+
   const handleSort = useCallback((column: string) => {
     setSort(prev => ({
       column,
@@ -144,7 +151,11 @@ const CitiesTable: React.FC<CitiesTableProps> = ({ weatherData }) => {
   return (
     <Card className="w-full overflow-hidden">
       <div className="p-4">
-        <SearchBar onSearch={handleSearch} className="mb-4" />
+        <SearchBar 
+          onSearch={handleSearch} 
+          onSelectCity={handleSelectCity}
+          className="mb-4" 
+        />
       </div>
 
       <div className="overflow-x-auto max-h-[70vh] overflow-y-auto">
@@ -204,8 +215,9 @@ const CitiesTable: React.FC<CitiesTableProps> = ({ weatherData }) => {
                   className="border-b hover:bg-muted/20 transition-colors"
                 >
                   <td className="p-3">
+                    {/* City coordinates are stored as [longitude, latitude], so we need to swap them in the URL */}
                     <Link 
-                      to={`/weather?lat=${city.coordinates[1]}&lon=${city.coordinates[0]}&name=${city.name}`}
+                      to={`/weather?lon=${city.coordinates[1]}&lat=${city.coordinates[0]}&name=${city.name}`}
                       className="text-blue-600 hover:underline"
                       onContextMenu={(e) => handleCityContextMenu(e, city)}
                     >
@@ -220,7 +232,7 @@ const CitiesTable: React.FC<CitiesTableProps> = ({ weatherData }) => {
                       <div className="flex items-center space-x-1">
                         <WeatherIcon weatherCode={cityWeather.weather} size={16} />
                         <span className="ml-1">
-                          {cityWeather.temp_min.toFixed(1)}° - {cityWeather.temp_max.toFixed(1)}°
+                          {Math.round(cityWeather.temp_min)}° - {Math.round(cityWeather.temp_max)}°
                         </span>
                       </div>
                     ) : (
@@ -255,16 +267,7 @@ const CitiesTable: React.FC<CitiesTableProps> = ({ weatherData }) => {
         {!isLoading && cities.length === 0 && (
           <div className="text-center">
             <p className="text-muted-foreground">No cities found</p>
-            <Button 
-              onClick={() => {
-                setSearchQuery('');
-                loadCities(true);
-              }} 
-              variant="outline" 
-              className="mt-2"
-            >
-              Clear search
-            </Button>
+
           </div>
         )}
       </div>

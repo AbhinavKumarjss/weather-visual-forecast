@@ -50,16 +50,45 @@ export const fetchCities = async (
   }
 };
 
+/**
+ * Fetches current weather data from OpenWeatherMap API
+ * IMPORTANT: OpenWeatherMap API expects (lat, lon) format, but our city data stores coordinates as [longitude, latitude]
+ * @param lat Latitude coordinate
+ * @param lon Longitude coordinate
+ * @returns Promise<WeatherData>
+ */
 export const fetchWeather = async (lat: number, lon: number): Promise<WeatherData> => {
   try {
-    const url = `${WEATHER_API_BASE_URL}/weather?lat=${lat}&lon=${lon}&appid=${OPENWEATHER_API_KEY}&units=metric`;
-    const response = await fetch(url);
+    console.log(`Fetching weather data for coordinates: lat=${lat}, lon=${lon}`);
+    // The API expects parameters in the order: lat, lon
+    const url = `${WEATHER_API_BASE_URL}/weather?lat=${lat}&lon=${lon}&appid=${OPENWEATHER_API_KEY}`;
+    console.log(`Weather API URL: ${url}`);
+    
+    const response = await fetch(url, {
+      method: 'GET',
+      headers: {
+        'Accept': 'application/json',
+      },
+    });
     
     if (!response.ok) {
-      throw new Error(`Failed to fetch weather: ${response.status}`);
+      const errorText = await response.text();
+      console.error(`Weather API error (${response.status}): ${errorText}`);
+      throw new Error(`Failed to fetch weather: ${response.status} - ${errorText}`);
     }
     
     const data: WeatherData = await response.json();
+    console.log('Weather data received successfully:', data);
+    console.log(`Original temperature values in Kelvin: temp=${data.main.temp}, min=${data.main.temp_min}, max=${data.main.temp_max}`);
+    
+    // Always convert temperatures from Kelvin to Celsius
+    data.main.temp = convertKelvinToCelsius(data.main.temp);
+    data.main.temp_min = convertKelvinToCelsius(data.main.temp_min);
+    data.main.temp_max = convertKelvinToCelsius(data.main.temp_max);
+    data.main.feels_like = convertKelvinToCelsius(data.main.feels_like);
+    
+    console.log(`Converted temperature values in Celsius: temp=${data.main.temp}, min=${data.main.temp_min}, max=${data.main.temp_max}`);
+    
     return data;
   } catch (error) {
     console.error('Error fetching weather:', error);
@@ -72,16 +101,50 @@ export const fetchWeather = async (lat: number, lon: number): Promise<WeatherDat
   }
 };
 
+/**
+ * Fetches forecast data from OpenWeatherMap API
+ * IMPORTANT: OpenWeatherMap API expects (lat, lon) format, but our city data stores coordinates as [longitude, latitude]
+ * @param lat Latitude coordinate
+ * @param lon Longitude coordinate
+ * @returns Promise<ForecastData>
+ */
 export const fetchForecast = async (lat: number, lon: number): Promise<ForecastData> => {
   try {
-    const url = `${WEATHER_API_BASE_URL}/forecast?lat=${lat}&lon=${lon}&appid=${OPENWEATHER_API_KEY}&units=metric`;
-    const response = await fetch(url);
+    console.log(`Fetching forecast data for coordinates: lat=${lat}, lon=${lon}`);
+    // The API expects parameters in the order: lat, lon
+    const url = `${WEATHER_API_BASE_URL}/forecast?lat=${lat}&lon=${lon}&appid=${OPENWEATHER_API_KEY}`;
+    console.log(`Forecast API URL: ${url}`);
+    
+    const response = await fetch(url, {
+      method: 'GET',
+      headers: {
+        'Accept': 'application/json',
+      },
+    });
     
     if (!response.ok) {
-      throw new Error(`Failed to fetch forecast: ${response.status}`);
+      const errorText = await response.text();
+      console.error(`Forecast API error (${response.status}): ${errorText}`);
+      throw new Error(`Failed to fetch forecast: ${response.status} - ${errorText}`);
     }
     
     const data: ForecastData = await response.json();
+    console.log('Forecast data received successfully:', data);
+    
+    // Always convert all forecast temperatures from Kelvin to Celsius
+    if (data.list && data.list.length > 0) {
+      console.log(`Original first forecast item temperature in Kelvin: ${data.list[0].main.temp}K`);
+      
+      data.list.forEach(item => {
+        item.main.temp = convertKelvinToCelsius(item.main.temp);
+        item.main.temp_min = convertKelvinToCelsius(item.main.temp_min);
+        item.main.temp_max = convertKelvinToCelsius(item.main.temp_max);
+        item.main.feels_like = convertKelvinToCelsius(item.main.feels_like);
+      });
+      
+      console.log(`Converted first forecast item temperature in Celsius: ${data.list[0].main.temp}°C`);
+    }
+    
     return data;
   } catch (error) {
     console.error('Error fetching forecast:', error);
@@ -92,6 +155,11 @@ export const fetchForecast = async (lat: number, lon: number): Promise<ForecastD
     });
     throw error;
   }
+};
+
+// Helper function to convert Kelvin to Celsius
+const convertKelvinToCelsius = (kelvin: number): number => {
+  return Number((kelvin - 273.15).toFixed(2));
 };
 
 // Convert city data from API response format to our City type
