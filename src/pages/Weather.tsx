@@ -43,7 +43,6 @@ const Weather: React.FC<WeatherProps> = ({ updateWeatherSummary }) => {
         
         console.log('Starting fetch for both weather and forecast data');
         
-        // Fetch weather data first
         const weatherData = await fetchWeather(lat, lon);
         console.log('Weather data loaded:', weatherData);
         console.log('Temperature values from API:', {
@@ -54,10 +53,8 @@ const Weather: React.FC<WeatherProps> = ({ updateWeatherSummary }) => {
         });
         setCurrentWeather(weatherData);
         
-        // Then fetch forecast data
         const forecastData = await fetchForecast(lat, lon);  
         console.log('Forecast data loaded:', forecastData);
-        // Log first few temperature values from forecast
         if (forecastData.list && forecastData.list.length > 0) {
           console.log('Sample forecast temperatures:', forecastData.list.slice(0, 3).map(item => ({
             time: new Date(item.dt * 1000).toLocaleTimeString(),
@@ -68,14 +65,12 @@ const Weather: React.FC<WeatherProps> = ({ updateWeatherSummary }) => {
         }
         setForecast(forecastData);
         
-        // Update the weather summary in the parent component if the function is provided
         if (updateWeatherSummary && weatherData.weather && weatherData.weather[0]) {
           console.log('Updating weather summary in parent component');
           
-          // Make sure we pass already-converted Celsius temperatures to prevent double conversion
           updateWeatherSummary(cityName, {
-            temp_max: weatherData.main.temp_max, // Already converted to Celsius in fetchWeather
-            temp_min: weatherData.main.temp_min, // Already converted to Celsius in fetchWeather
+            temp_max: weatherData.main.temp_max,
+            temp_min: weatherData.main.temp_min,
             weather: weatherData.weather[0].icon
           });
         }
@@ -97,13 +92,11 @@ const Weather: React.FC<WeatherProps> = ({ updateWeatherSummary }) => {
 
     loadWeatherData();
     
-    // Cleanup function
     return () => {
       console.log('Weather component unmounting');
     };
   }, [lat, lon, cityName, updateWeatherSummary]);
 
-  // Group forecast by day
   const groupedForecast = React.useMemo(() => {
     if (!forecast || !forecast.list || !Array.isArray(forecast.list)) {
       console.log('No forecast data to group');
@@ -114,9 +107,8 @@ const Weather: React.FC<WeatherProps> = ({ updateWeatherSummary }) => {
     const grouped: Record<string, typeof forecast.list> = {};
     
     forecast.list.forEach(item => {
-      // Convert Unix timestamp to proper Date string for consistency
       const dateObj = new Date(item.dt * 1000);
-      const dateStr = dateObj.toISOString().split('T')[0]; // Use ISO date format (YYYY-MM-DD)
+      const dateStr = dateObj.toISOString().split('T')[0];
       
       if (!grouped[dateStr]) {
         grouped[dateStr] = [];
@@ -129,7 +121,6 @@ const Weather: React.FC<WeatherProps> = ({ updateWeatherSummary }) => {
       const minTemp = Math.min(...temps);
       const maxTemp = Math.max(...temps);
       
-      // Store the ISO date string instead of locale-formatted string
       return {
         dateStr,
         items,
@@ -204,7 +195,6 @@ const Weather: React.FC<WeatherProps> = ({ updateWeatherSummary }) => {
           </Button>
         </Link>
         
-        {/* Current Weather */}
         <Card className="p-6 mb-6">
           <div className="flex flex-col md:flex-row items-center md:items-start justify-between">
             <div>
@@ -248,7 +238,6 @@ const Weather: React.FC<WeatherProps> = ({ updateWeatherSummary }) => {
           </div>
         </Card>
         
-        {/* Location Map */}
         <h2 className="text-xl font-bold mb-4">Location</h2>
         <Card className="p-4 mb-6">
           <LocationMap 
@@ -258,11 +247,9 @@ const Weather: React.FC<WeatherProps> = ({ updateWeatherSummary }) => {
           />
         </Card>
         
-        {/* 5-Day Forecast */}
         <h2 className="text-xl font-bold mb-4">5-Day Forecast</h2>
         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
           {groupedForecast.slice(0, 5).map((day, index) => {
-            // Create a valid date object from the ISO date string
             const forecastDate = new Date(day.dateStr);
             
             return (
@@ -282,32 +269,7 @@ const Weather: React.FC<WeatherProps> = ({ updateWeatherSummary }) => {
           })}
         </div>
         
-        {/* Hourly Forecast */}
-        {forecast && forecast.list && (
-          <>
-            <h2 className="text-xl font-bold mt-6 mb-4">Hourly Forecast</h2>
-            <div className="overflow-x-auto">
-              <div className="flex space-x-4 pb-4" style={{ minWidth: 'max-content' }}>
-                {forecast.list.slice(0, 8).map((item, index) => {
-                  // Create proper Date object from Unix timestamp
-                  const forecastTime = new Date(item.dt * 1000);
-                  
-                  return (
-                    <Card key={index} className="p-3 w-24">
-                      <p className="text-sm font-medium text-center mb-2">
-                        {forecastTime.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                      </p>
-                      <div className="flex flex-col items-center">
-                        <WeatherIcon weatherCode={item.weather[0].icon} size={32} />
-                        <p className="font-bold mt-1">{item.main.temp !== undefined ? Math.round(item.main.temp) : 'N/A'}°</p>
-                      </div>
-                    </Card>
-                  );
-                })}
-              </div>
-            </div>
-          </>
-        )}
+                {forecast && forecast.list && (          <React.Fragment>            <h2 className="text-xl font-bold mt-6 mb-4">Hourly Forecast</h2>            <div className="overflow-x-auto">              <div className="flex space-x-4 pb-4" style={{ minWidth: 'max-content' }}>                {forecast.list.slice(0, 8).map((item, index) => {                  const forecastTime = new Date(item.dt * 1000);                                    return (                    <Card key={index} className="p-3 w-24">                      <p className="text-sm font-medium text-center mb-2">                        {forecastTime.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}                      </p>                      <div className="flex flex-col items-center">                        <WeatherIcon weatherCode={item.weather[0].icon} size={32} />                        <p className="font-bold mt-1">{item.main.temp !== undefined ? Math.round(item.main.temp) : 'N/A'}°</p>                      </div>                    </Card>                  );                })}              </div>            </div>          </React.Fragment>        )}
       </div>
     </div>
   );

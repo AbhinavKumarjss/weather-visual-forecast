@@ -27,7 +27,6 @@ const CitiesTable: React.FC<CitiesTableProps> = ({ weatherData }) => {
   const lastRowRef = useRef<HTMLTableRowElement | null>(null);
   
   const loadCities = useCallback(async (reset = false) => {
-    // Don't load if already loading
     if (isLoading) return;
     
     try {
@@ -71,8 +70,6 @@ const CitiesTable: React.FC<CitiesTableProps> = ({ weatherData }) => {
   }, []);
 
   const handleSelectCity = useCallback((city: City) => {
-    // If a city is selected directly from suggestions, we want to 
-    // immediately set it without waiting for the search to complete
     setCities([city]);
     setHasMore(false);
   }, []);
@@ -84,7 +81,6 @@ const CitiesTable: React.FC<CitiesTableProps> = ({ weatherData }) => {
     }));
   }, []);
 
-  // Initial load and reload on search/sort changes
   useEffect(() => {
     setCities([]);
     setPage(0);
@@ -92,12 +88,9 @@ const CitiesTable: React.FC<CitiesTableProps> = ({ weatherData }) => {
     loadCities(true);
   }, [searchQuery, sort]);
 
-  // Setup intersection observer for infinite scrolling
   useEffect(() => {
-    // Don't setup observer if loading or no more data
     if (isLoading || !hasMore) return;
 
-    // Observer callback function
     const handleObserver = (entries: IntersectionObserverEntry[]) => {
       const [entry] = entries;
       if (entry.isIntersecting) {
@@ -105,24 +98,19 @@ const CitiesTable: React.FC<CitiesTableProps> = ({ weatherData }) => {
       }
     };
     
-    // Create new observer
     const observer = new IntersectionObserver(handleObserver, { 
       rootMargin: '100px',
       threshold: 0.1 
     });
     
-    // Store current last row reference
     const currentLastRowRef = lastRowRef.current;
     
-    // Observe last row element if it exists
     if (currentLastRowRef) {
       observer.observe(currentLastRowRef);
     }
     
-    // Store the observer reference
     observerRef.current = observer;
     
-    // Cleanup function
     return () => {
       if (currentLastRowRef && observer) {
         observer.unobserve(currentLastRowRef);
@@ -215,7 +203,6 @@ const CitiesTable: React.FC<CitiesTableProps> = ({ weatherData }) => {
                   className="border-b hover:bg-muted/20 transition-colors"
                 >
                   <td className="p-3">
-                    {/* City coordinates are stored as [longitude, latitude], so we need to swap them in the URL */}
                     <Link 
                       to={`/weather?lon=${city.coordinates[1]}&lat=${city.coordinates[0]}&name=${city.name}`}
                       className="text-blue-600 hover:underline"
@@ -246,7 +233,6 @@ const CitiesTable: React.FC<CitiesTableProps> = ({ weatherData }) => {
         </table>
       </div>
       
-      {/* Loading indicator at the bottom */}
       <div className="p-4 h-[60px] flex items-center justify-center border-t">
         {isLoading && (
           <div className="flex items-center space-x-2">
