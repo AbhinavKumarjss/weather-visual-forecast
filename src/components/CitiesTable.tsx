@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { Link } from 'react-router-dom';
 import { fetchCities, convertCityRecords } from '@/utils/api';
@@ -25,7 +26,7 @@ const CitiesTable: React.FC<CitiesTableProps> = ({ weatherData }) => {
   const [sort, setSort] = useState<SortState>({ column: 'name', direction: 'asc' });
   const observer = useRef<IntersectionObserver | null>(null);
   const lastCityRef = useRef<HTMLTableRowElement | null>(null);
-
+  
   const loadCities = useCallback(async (reset = false) => {
     try {
       setIsLoading(true);
@@ -41,11 +42,18 @@ const CitiesTable: React.FC<CitiesTableProps> = ({ weatherData }) => {
       
       const formattedCities = convertCityRecords(data.records);
       
-      setCities(prev => reset ? formattedCities : [...prev, ...formattedCities]);
-      setHasMore(formattedCities.length > 0 && cities.length + formattedCities.length < data.total_count);
+      if (reset) {
+        setCities(formattedCities);
+      } else {
+        setCities(prev => [...prev, ...formattedCities]);
+      }
+      
+      setHasMore(formattedCities.length > 0 && formattedCities.length === 20);
       
       if (!reset) {
         setPage(prev => prev + 1);
+      } else {
+        setPage(1); // Start at page 1 after reset since we've loaded the first page
       }
     } catch (error) {
       console.error("Error loading cities:", error);
@@ -57,7 +65,7 @@ const CitiesTable: React.FC<CitiesTableProps> = ({ weatherData }) => {
     } finally {
       setIsLoading(false);
     }
-  }, [searchQuery, page, sort.column, sort.direction, cities.length]);
+  }, [searchQuery, page, sort.column, sort.direction]);
 
   const handleSearch = useCallback((query: string) => {
     setSearchQuery(query);
@@ -79,8 +87,9 @@ const CitiesTable: React.FC<CitiesTableProps> = ({ weatherData }) => {
     loadCities(true);
   }, [loadCities, searchQuery, sort]);
 
+  // Setup intersection observer for infinite scrolling
   useEffect(() => {
-    if (isLoading) return;
+    if (isLoading || !hasMore) return;
 
     if (observer.current) observer.current.disconnect();
     
@@ -88,6 +97,8 @@ const CitiesTable: React.FC<CitiesTableProps> = ({ weatherData }) => {
       if (entries[0].isIntersecting && hasMore) {
         loadCities();
       }
+    }, {
+      rootMargin: '100px', // Load more data before user reaches the bottom
     });
     
     if (lastCityRef.current) {

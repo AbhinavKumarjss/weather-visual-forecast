@@ -28,6 +28,13 @@ const App = () => {
     }
   }, []);
 
+  // Update localStorage when weatherData changes
+  useEffect(() => {
+    if (Object.keys(weatherData).length > 0) {
+      localStorage.setItem('weatherSummaries', JSON.stringify(weatherData));
+    }
+  }, [weatherData]);
+
   return (
     <QueryClientProvider client={queryClient}>
       <TooltipProvider>
@@ -35,8 +42,17 @@ const App = () => {
         <Sonner />
         <BrowserRouter>
           <Routes>
-            <Route path="/" element={<Index />} />
-            <Route path="/weather" element={<Weather />} />
+            <Route path="/" element={<Index weatherData={weatherData} />} />
+            <Route path="/weather" element={
+              <Weather 
+                updateWeatherSummary={(cityName, summary) => {
+                  setWeatherData(prev => ({
+                    ...prev,
+                    [cityName]: summary
+                  }));
+                }}
+              />
+            } />
             <Route path="*" element={<NotFound />} />
           </Routes>
         </BrowserRouter>

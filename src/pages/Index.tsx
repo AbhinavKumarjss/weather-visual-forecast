@@ -1,13 +1,13 @@
 
-import React, { useState } from 'react';
+import React from 'react';
 import CitiesTable from '@/components/CitiesTable';
 import { WeatherSummary } from '@/types';
 
-const Index = () => {
-  // This state will store weather data summaries keyed by city name
-  // It will be populated when users view weather for cities
-  const [weatherData, setWeatherData] = useState<Record<string, WeatherSummary>>({});
+interface IndexProps {
+  weatherData?: Record<string, WeatherSummary>;
+}
 
+const Index: React.FC<IndexProps> = ({ weatherData = {} }) => {
   return (
     <div className="min-h-screen bg-gray-50">
       <div className="container mx-auto px-4 py-8">
