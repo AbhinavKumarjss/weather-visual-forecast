@@ -1,10 +1,44 @@
-import { CityResponse, WeatherData, ForecastData } from '../types';
+import { CityResponse, WeatherData, ForecastData, City } from '../types';
 import { toast } from '@/components/ui/use-toast';
 
 const CITIES_API_BASE_URL = 'https://public.opendatasoft.com/api/records/1.0/search/';
 const WEATHER_API_BASE_URL = 'https://api.openweathermap.org/data/2.5';
 // The OpenWeather API key provided by the user
 const OPENWEATHER_API_KEY = '12457bbdef38608347f843fe98475c30';
+
+/**
+ * Fetches city suggestions for autocomplete that start with the search query
+ * @param search Search query to match city names against
+ * @param limit Maximum number of suggestions to return
+ * @returns Promise<City[]> Array of city objects that match the query
+ */
+export const fetchCitySuggestions = async (
+  search: string,
+  limit: number = 5
+): Promise<City[]> => {
+  try {
+    if (!search || search.length < 2) return [];
+    
+    // Use q= for searching and refine.name= for filtering by name with a startsWith operator
+    const url = `${CITIES_API_BASE_URL}?dataset=geonames-all-cities-with-a-population-1000&rows=${limit}&sort=population&q=${encodeURIComponent(search)}&refine.name=${encodeURIComponent(search)}`;
+    
+    console.log(`Fetching city suggestions from: ${url}`);
+    
+    const response = await fetch(url);
+    
+    if (!response.ok) {
+      throw new Error(`Failed to fetch city suggestions: ${response.status}`);
+    }
+    
+    const data: CityResponse = await response.json();
+    
+    // Convert to City type and return
+    return convertCityRecords(data.records);
+  } catch (error) {
+    console.error('Error fetching city suggestions:', error);
+    return [];
+  }
+};
 
 export const fetchCities = async (
   search: string = '',
