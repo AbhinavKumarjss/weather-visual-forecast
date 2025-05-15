@@ -217,7 +217,7 @@ const CitiesTable: React.FC<CitiesTableProps> = ({ weatherData }) => {
                   <td className="p-3">
                     {/* City coordinates are stored as [longitude, latitude], so we need to swap them in the URL */}
                     <Link 
-                      to={`/weather?lat=${city.coordinates[1]}&lon=${city.coordinates[0]}&name=${city.name}`}
+                      to={`/weather?lon=${city.coordinates[1]}&lat=${city.coordinates[0]}&name=${city.name}`}
                       className="text-blue-600 hover:underline"
                       onContextMenu={(e) => handleCityContextMenu(e, city)}
                     >
