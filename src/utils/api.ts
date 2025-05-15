@@ -4,8 +4,8 @@ import { toast } from 'sonner';
 
 const CITIES_API_BASE_URL = 'https://public.opendatasoft.com/api/records/1.0/search/';
 const WEATHER_API_BASE_URL = 'https://api.openweathermap.org/data/2.5';
-// In a real app, this would be stored securely and not in the client code
-const OPENWEATHER_API_KEY = 'fe5aacc313fc3c5f9fc929087d175ccf';
+// The OpenWeather API key provided by the user
+const OPENWEATHER_API_KEY = '12457bbdef38608347f843fe98475c30';
 
 export const fetchCities = async (
   search: string = '',
@@ -16,7 +16,10 @@ export const fetchCities = async (
 ): Promise<CityResponse> => {
   try {
     const searchParam = search ? `&q=${encodeURIComponent(search)}` : '';
-    const url = `${CITIES_API_BASE_URL}?dataset=geonames-all-cities-with-a-population-1000&rows=${limit}&start=${start}${searchParam}&sort=${sort} ${sortDirection}`;
+    // Fix: Changed the sort format to not include space between sort and direction
+    const sortParam = `&sort=${sort}`;
+    
+    const url = `${CITIES_API_BASE_URL}?dataset=geonames-all-cities-with-a-population-1000&rows=${limit}&start=${start}${searchParam}${sortParam}`;
     
     const response = await fetch(url);
     

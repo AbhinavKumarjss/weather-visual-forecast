@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { Link } from 'react-router-dom';
 import { fetchCities, convertCityRecords } from '@/utils/api';
@@ -25,7 +24,7 @@ const CitiesTable: React.FC<CitiesTableProps> = ({ weatherData }) => {
   const [page, setPage] = useState(0);
   const [sort, setSort] = useState<SortState>({ column: 'name', direction: 'asc' });
   const observer = useRef<IntersectionObserver | null>(null);
-  const lastCityRef = useRef<HTMLDivElement | null>(null);
+  const lastCityRef = useRef<HTMLTableRowElement | null>(null);
 
   const loadCities = useCallback(async (reset = false) => {
     try {
@@ -112,8 +111,6 @@ const CitiesTable: React.FC<CitiesTableProps> = ({ weatherData }) => {
     e: React.MouseEvent<HTMLAnchorElement, MouseEvent>,
     city: City
   ) => {
-    // Right-click is handled natively by the browser for opening in new tab
-    // This is just for any additional handling if needed
     e.stopPropagation();
   };
 
